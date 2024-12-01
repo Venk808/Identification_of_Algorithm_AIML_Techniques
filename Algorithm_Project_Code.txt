@@ -1,0 +1,67 @@
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import classification_report, confusion_matrix
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# Load the data
+data = pd.read_csv('/content/Algorithm_Dataset.csv')
+
+# Filter for the algorithms we're interested in
+algorithms_of_interest = ['DES', 'AES', 'RSA', 'Blowfish']
+filtered_data = data[data['Algorithm'].isin(algorithms_of_interest)]
+
+# Prepare the features and target
+X = filtered_data.drop(['Algorithm'], axis=1)
+y = filtered_data['Algorithm']
+
+# Encode the target variable
+le = LabelEncoder()
+y_encoded = le.fit_transform(y)
+
+# Split the data into training and testing sets
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.2, random_state=42)
+
+# Create and train the Random Forest Classifier
+rf_classifier = RandomForestClassifier(n_estimators=100, random_state=42)
+rf_classifier.fit(X_train, y_train)
+
+# Make predictions on the test set
+y_pred = rf_classifier.predict(X_test)
+
+# Print the classification report
+print("Classification Report:")
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+
+# Create a confusion matrix
+cm = confusion_matrix(y_test, y_pred)
+
+# Plot the confusion matrix
+plt.figure(figsize=(10, 8))
+sns.heatmap(cm, annot=True, fmt='d', cmap='Blues', xticklabels=le.classes_, yticklabels=le.classes_)
+plt.title('Confusion Matrix')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.show()
+
+# Print feature importances
+feature_importance = pd.DataFrame({
+    'feature': X.columns,
+    'importance': rf_classifier.feature_importances_
+}).sort_values('importance', ascending=False)
+
+print("\nTop 10 Most Important Features:")
+print(feature_importance.head(10))
+
+# Function to predict the algorithm for new data
+def predict_algorithm(new_data):
+    prediction = rf_classifier.predict(new_data)
+    return le.inverse_transform(prediction)[0]
+
+# Example usage
+new_data = np.array([[0, 128, 41, 1, 2, 7086, 100, 0, 7, 8, 4, 7, 1, 9, 5]])
+predicted_algorithm = predict_algorithm(new_data)
+print(f"\nPredicted Algorithm: {predicted_algorithm}")
